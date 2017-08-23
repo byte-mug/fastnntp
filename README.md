@@ -1,0 +1,2 @@
+# fastnntp
+Fast NNTP server
