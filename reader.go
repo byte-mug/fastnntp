@@ -113,6 +113,7 @@ func (r *Reader) ReadLineB(ext []byte) ([]byte,error) {
 	}
 	panic("unreachable")
 }
+
 func (r *Reader) isContinuation() (ok bool,err error) {
 	buf := r.b.read()
 	if len(buf) == 0 {
@@ -140,6 +141,8 @@ func (r *Reader) isContinuation() (ok bool,err error) {
 	}
 	return
 }
+
+// Don't use it.
 func (r *Reader) ReadContinuedLineB(ext []byte) ([]byte,error) {
 	ext,err := r.ReadLineB(ext)
 	if !endsWithLF(ext) { return ext,err }

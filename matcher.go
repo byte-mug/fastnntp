@@ -96,4 +96,26 @@ func trimCRLF(b []byte) []byte {
 	}
 	return b[:0]
 }
+func trimRight(buf []byte) []byte {
+	for i,b := range buf {
+		if b!=' ' { return buf[i:] }
+	}
+	return nil
+}
+func trimLeft(buf []byte) []byte {
+	i := len(buf)
+	for i>0 {
+		i--
+		switch buf[i] {
+		case '\r','\n','\t',' ':continue
+		default: return buf[:i+1]
+		}
+	}
+	return nil
+}
+
+func toLower(b byte) byte {
+	if (b >= 'A') && (b <= 'Z') { return (b-'A')+'a' }
+	return b
+}
 
