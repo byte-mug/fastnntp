@@ -118,4 +118,10 @@ func toLower(b byte) byte {
 	if (b >= 'A') && (b <= 'Z') { return (b-'A')+'a' }
 	return b
 }
+func isDigit(b byte) bool {
+	if b>'9' { return false }
+	if b<'0' { return false }
+	return true
+}
+
 

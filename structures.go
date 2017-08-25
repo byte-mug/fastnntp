@@ -25,16 +25,24 @@ SOFTWARE.
 
 package fastnntp
 
+import "sync"
+
 type Group struct{
 	Group []byte
 	Number int64
 	Low int64
 	High int64
 }
+var pool_Group = sync.Pool{New: func()interface{} { return new(Group) }}
+func pool_Group_put(g *Group) {
+	g.Group = nil
+	pool_Group.Put(g)
+}
+
 type GroupCaps interface {
 	GetGroup(g *Group) bool
-	ListGroup(g *Group,w *DotWriter)
-	CursorMoveGroup(g *Group,i int64,backward bool) (ni int64,id []byte,ok bool)
+	ListGroup(g *Group,w *DotWriter,first,last int64)
+	CursorMoveGroup(g *Group,i int64,backward bool,id_buf []byte) (ni int64,id []byte,ok bool)
 }
 
 type Article struct{
@@ -55,11 +63,20 @@ type Handler struct {
 	GroupCaps
 	ArticleCaps
 }
-
-type Request struct {
-	
+func (h *Handler) fill() {
+	if h.GroupCaps==nil { h.GroupCaps = DefaultCaps }
+	if h.ArticleCaps==nil { h.ArticleCaps = DefaultCaps }
 }
 
-type CommandCtx struct {
-	
-}
+var DefaultCaps = new(defCaps)
+
+type defCaps struct {}
+// GroupCaps
+func (d *defCaps) GetGroup(g *Group) bool { return false }
+func (d *defCaps) ListGroup(g *Group,w *DotWriter,first,last int64) { }
+func (d *defCaps) CursorMoveGroup(g *Group,i int64,backward bool, id_buf []byte) (ni int64,id []byte,ok bool) { ok = false; return }
+
+// ArticleCaps
+func (d *defCaps) StatArticle(a *Article) bool { return false }
+func (d *defCaps) GetArticle(a *Article,head, body bool) func(w *DotWriter) { return nil }
+

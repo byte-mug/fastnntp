@@ -25,6 +25,8 @@ SOFTWARE.
 
 package fastnntp
 
+import "math"
+
 func AppendUint(dst []byte, n int64) []byte {
 	
 	var b [20]byte
@@ -49,3 +51,17 @@ func ParseUint(src []byte) (i int64) {
 	}
 	return
 }
+func ParseRange(src[]byte) (int64,int64){
+	ran := [2]int64{0,-1}
+	pos := 0
+	for _,b := range src {
+		if b=='-' { pos = 1 }
+		if b<'0' { continue }
+		if b>'9' { continue }
+		ran[pos] = (ran[pos]*10) + int64(b-'0')
+	}
+	if ran[1]<0 { ran[1] = math.MaxInt64 }
+	return ran[0],ran[1]
+}
+
+
