@@ -743,7 +743,7 @@ func handlePost(h *nntpHandler,args [][]byte) error {
 
 func handleIHave(h *nntpHandler,args [][]byte) error {
 	// TODO: Check Permissions
-	if len(args)==0 { h.writeError(ErrSyntax) }
+	if len(args)==0 { return h.writeError(ErrSyntax) }
 	id := args[0]
 	wanted,possible := h.h.CheckPostId(id)
 	if !wanted { return h.writeError(ErrNotWanted) }
@@ -778,7 +778,7 @@ func handleIHave(h *nntpHandler,args [][]byte) error {
 */
 func handleCheck(h *nntpHandler,args [][]byte) error {
 	// TODO: Check Permissions
-	if len(args)==0 { h.writeError(ErrSyntax) }
+	if len(args)==0 { return h.writeError(ErrSyntax) }
 	id := args[0]
 	code := int64(238)
 	wanted,possible := h.h.CheckPostId(id)
@@ -813,8 +813,9 @@ func handleCheck(h *nntpHandler,args [][]byte) error {
 */
 func handleTakethis(h *nntpHandler,args [][]byte) error {
 	// TODO: Check Permissions
-	if len(args)==0 { h.writeError(ErrSyntax) }
+	if len(args)==0 { h.end = true; return h.writeError(ErrSyntax) }
 	id := args[0]
+	
 	dotr := h.r.DotReader()
 	r,f := h.h.PerformPost(id, dotr)
 	io.Copy(ioutil.Discard,dotr) // Eat up excess data.

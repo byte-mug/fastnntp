@@ -177,7 +177,7 @@ func (d *DotReader) innerRead() {
 		state = nlDotNl_transition(state,b)
 		if state == nlDotNl_end {
 			d.data = buf[:i+1]
-			d.r.b.advanceWrite(i+1)
+			d.r.b.advanceRead(i+1)
 			d.end = true
 			return
 		}
