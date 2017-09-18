@@ -84,11 +84,10 @@ type PostingCabs interface{
 	PerformPost(id []byte, r *DotReader) (rejected bool,failed bool)
 }
 
-type Wildmat struct{}
 type GroupListingCabs interface{
 	// Performs a List-Active action.
 	// the argument 'wm' may be nil.
-	ListGroups(wm *Wildmat, ila IListActive) bool
+	ListGroups(wm *WildMat, ila IListActive) bool
 }
 
 type Handler struct {
@@ -124,4 +123,4 @@ func (d *defCaps) CheckPost() (possible bool) { return }
 func (d *defCaps) PerformPost(id []byte, r *DotReader) (rejected bool,failed bool) { return true,true }
 
 // GroupListingCabs
-func (d *defCaps) ListGroups(wm *Wildmat, ila IListActive) bool { return false }
+func (d *defCaps) ListGroups(wm *WildMat, ila IListActive) bool { return false }
