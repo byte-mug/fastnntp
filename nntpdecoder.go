@@ -1027,7 +1027,7 @@ func handleXHdr(h *nntpHandler,args [][]byte) error {
 
 // RFC-3977    7.6.   The LIST Commands
 
-const handleListGenericGroups_Resp = "215 list of newsgroups follows"
+const handleListGenericGroups_Resp = "215 list of newsgroups follows\r\n"
 func handleListGenericGroups(h *nntpHandler,args [][]byte, mode ListActiveMode) error {
 	bw := AcquireBufferedWriter(h.w)
 	defer func(){
@@ -1204,7 +1204,7 @@ func handleListHeaders(h *nntpHandler,args [][]byte) error { return handleListOu
 var handleList_map = map[string]handleFunc {
 	"": handleListActive,
 	"active": handleListActive,
-	"newsgoups": handleListNewsgroups,
+	"newsgroups": handleListNewsgroups,
 	"overiew.fmt": handleListOverviewFmt,
 	"headers": handleListHeaders,
 }
