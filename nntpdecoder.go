@@ -1029,11 +1029,15 @@ func handleXHdr(h *nntpHandler,args [][]byte) error {
 
 const handleListGenericGroups_Resp = "215 list of newsgroups follows\r\n"
 func handleListGenericGroups(h *nntpHandler,args [][]byte, mode ListActiveMode) error {
+	var wm *WildMat
+	wm = nil
 	bw := AcquireBufferedWriter(h.w)
 	defer func(){
 		bw.Flush()
 		ReleaseBufferedWriter(bw)
 	}()
+	
+	if len(args)>0 { wm = ParseWildMatBinary(args[0]); if wm.Compile()!=nil { wm = nil } }
 	
 	_,err := bw.Write(append(h.outBuffer,handleListGenericGroups_Resp...))
 	if err!=nil { return err }
@@ -1041,14 +1045,14 @@ func handleListGenericGroups(h *nntpHandler,args [][]byte, mode ListActiveMode) 
 	dw := AcquireDotWriter()
 	dw.Reset(bw)
 	ila := pool_ListActive.Get().(*ListActive)
-	ila.reset(h.outBuffer,dw,mode)
+	ila.reset(h.outBuffer,dw,mode,wm)
 	defer func(){
 		ila.release()
 		dw.Close()
 		dw.Release()
 	}()
 	
-	h.h.ListGroups(nil,ila)
+	h.h.ListGroups(wm,ila)
 	
 	return nil
 }

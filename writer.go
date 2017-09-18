@@ -154,21 +154,30 @@ type ListActive struct{
 	buffer []byte
 	writer io.Writer
 	mode   ListActiveMode
+	wm     *WildMat
 }
-func (ov *ListActive) reset(buffer []byte,writer io.Writer,mode ListActiveMode) {
+func (ov *ListActive) match(group []byte) bool {
+	if ov.wm==nil { return true }
+	return ov.wm.Match(group)
+}
+func (ov *ListActive) reset(buffer []byte,writer io.Writer,mode ListActiveMode,wm *WildMat) {
 	ov.buffer = buffer
 	ov.writer = writer
 	ov.mode   = mode
+	ov.wm     = wm
 }
 func (ov *ListActive) release(){
 	ov.writer = nil
 	ov.buffer = nil
 	ov.mode   = LAM_Active
+	ov.wm     = nil
 	pool_ListActive.Put(ov)
 }
 func (ov *ListActive) GetListActiveMode() ListActiveMode { return ov.mode }
 func (ov *ListActive) WriteActive(group []byte, high, low int64,status byte) error {
 	if ov.mode != LAM_Active { panic(fmt.Sprint("invalid mode: ",ov.mode)) }
+	/* Skip unwanted groups. */
+	if !ov.match(group) { return nil }
 	out := ov.buffer
 	out = append(out,group...)
 	out = append(out,' ')
@@ -181,6 +190,8 @@ func (ov *ListActive) WriteActive(group []byte, high, low int64,status byte) err
 }
 func (ov *ListActive) WriteNewsgroups(group []byte,description []byte) error {
 	if ov.mode != LAM_Newsgroups { panic(fmt.Sprint("invalid mode: ",ov.mode)) }
+	/* Skip unwanted groups. */
+	if !ov.match(group) { return nil }
 	out := ov.buffer
 	out = append(out,group...)
 	out = append(out,'\t')
