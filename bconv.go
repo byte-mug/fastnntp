@@ -52,7 +52,7 @@ func ParseUint(src []byte) (i int64) {
 	return
 }
 func ParseRange(src[]byte) (int64,int64){
-	ran := [2]int64{0,-1}
+	ran := [2]int64{0,0}
 	pos := 0
 	for _,b := range src {
 		if b=='-' { pos = 1 }
@@ -60,7 +60,7 @@ func ParseRange(src[]byte) (int64,int64){
 		if b>'9' { continue }
 		ran[pos] = (ran[pos]*10) + int64(b-'0')
 	}
-	if ran[1]<0 { ran[1] = math.MaxInt64 }
+	if pos==0 { ran[1] = math.MaxInt64 }
 	return ran[0],ran[1]
 }
 

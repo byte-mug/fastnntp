@@ -235,4 +235,3 @@ func (r *DotReader) Release() {
 	r.err = nil
 	pool_DotReader.Put(r)
 }
-

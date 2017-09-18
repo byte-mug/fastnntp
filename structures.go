@@ -45,6 +45,13 @@ type GroupCaps interface {
 	CursorMoveGroup(g *Group,i int64,backward bool,id_buf []byte) (ni int64,id []byte,ok bool)
 }
 
+var pool_Article = sync.Pool{New: func()interface{} { return new(Article) }}
+func pool_Article_put(g *Article) {
+	g.MessageId = nil
+	g.Group = nil
+	pool_Article.Put(g)
+}
+
 type Article struct{
 	MessageId []byte
 	Group []byte
@@ -52,20 +59,50 @@ type Article struct{
 	HasId bool
 	HasNum bool
 }
+
+var pool_ArticleRange = sync.Pool{New: func()interface{} { return new(ArticleRange) }}
+func pool_ArticleRange_put(g *ArticleRange) {
+	g.MessageId = nil
+	g.Group = nil
+	pool_ArticleRange.Put(g)
+}
+
+type ArticleRange struct{
+	Article
+	LastNumber int64
+}
 type ArticleCaps interface {
-	// Every method must set the message-id on success, if it is not given.
+	// Every method (except WriteOverview) must set the message-id on success, if it is not given.
 	
 	StatArticle(a *Article) bool
 	GetArticle(a *Article,head, body bool) func(w *DotWriter)
+	WriteOverview(ar *ArticleRange) func(w IOverview)
+}
+type PostingCabs interface{
+	CheckPostId(id []byte) (wanted bool, possible bool)
+	CheckPost() (possible bool)
+	PerformPost(id []byte, r *DotReader) (rejected bool,failed bool)
+}
+
+type Wildmat struct{}
+type GroupListingCabs interface{
+	// Performs a List-Active action.
+	// the argument 'wm' may be nil.
+	ListGroups(wm *Wildmat, ila IListActive) bool
 }
 
 type Handler struct {
 	GroupCaps
 	ArticleCaps
+	PostingCabs
+	GroupListingCabs
 }
 func (h *Handler) fill() {
 	if h.GroupCaps==nil { h.GroupCaps = DefaultCaps }
 	if h.ArticleCaps==nil { h.ArticleCaps = DefaultCaps }
+	if h.PostingCabs==nil { h.PostingCabs = DefaultCaps }
+	if h.GroupListingCabs==nil { h.GroupListingCabs = DefaultCaps }
+	
 }
 
 var DefaultCaps = new(defCaps)
@@ -79,4 +116,12 @@ func (d *defCaps) CursorMoveGroup(g *Group,i int64,backward bool, id_buf []byte)
 // ArticleCaps
 func (d *defCaps) StatArticle(a *Article) bool { return false }
 func (d *defCaps) GetArticle(a *Article,head, body bool) func(w *DotWriter) { return nil }
+func (d *defCaps) WriteOverview(ar *ArticleRange) func(w IOverview) { return nil }
 
+// PostingCabs
+func (d *defCaps) CheckPostId(id []byte) (wanted bool, possible bool) { return }
+func (d *defCaps) CheckPost() (possible bool) { return }
+func (d *defCaps) PerformPost(id []byte, r *DotReader) (rejected bool,failed bool) { return true,true }
+
+// GroupListingCabs
+func (d *defCaps) ListGroups(wm *Wildmat, ila IListActive) bool { return false }

@@ -46,6 +46,9 @@ var ErrInvalidMessageID = &NNTPError{430, "No article with that message-id"}
 // ErrInvalidArticleNumber is returned when an article is requested that can't be found.
 var ErrInvalidArticleNumber = &NNTPError{423, "No article with that number"}
 
+// ErrInvalidArticleNumber with other text
+var ErrInvalidArticleRange = &NNTPError{423, "No articles in that range"}
+
 // ErrNoCurrentArticle is returned when a command is executed that
 // requires a current article when one has not been selected.
 var ErrNoCurrentArticle = &NNTPError{420, "Current article number is invalid"}
