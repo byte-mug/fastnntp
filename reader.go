@@ -114,46 +114,6 @@ func (r *Reader) ReadLineB(ext []byte) ([]byte,error) {
 	panic("unreachable")
 }
 
-func (r *Reader) isContinuation() (ok bool,err error) {
-	buf := r.b.read()
-	if len(buf) == 0 {
-		r.b.reset()
-		err = r.b.feedFrom(r.r)
-	}
-	if len(buf) == 0 {
-		return
-	}
-	if !isWhiteSpace(buf[0]) { return }
-	ok = true
-	
-	// consume all leading white spaces
-	for{
-		for i,b := range buf {
-			if !isWhiteSpace(b) {
-				if i>0 { r.b.advanceRead(i) }
-				return
-			}
-		}
-		r.b.reset()
-		err = r.b.feedFrom(r.r)
-		buf = r.b.read()
-		if len(buf) == 0 { return }
-	}
-	return
-}
-
-// Don't use it.
-func (r *Reader) ReadContinuedLineB(ext []byte) ([]byte,error) {
-	ext,err := r.ReadLineB(ext)
-	if !endsWithLF(ext) { return ext,err }
-	cont,err := r.isContinuation()
-	for cont {
-		ext = append(trimCRLF(ext),' ')
-		ext,err = r.ReadLineB(trimCRLF(ext))
-		cont,err = r.isContinuation()
-	}
-	return ext,err
-}
 
 type DotReader struct{
 	r     *Reader
