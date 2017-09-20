@@ -107,10 +107,10 @@ type LoginCaps interface{
 	
 	// This Method returns true, if the combination of username is accepted without password.
 	// The method can optionally return a new Handler object in place of the old one.
-	AuthinfoUserOny(user string, oldh *Handler) (bool,*Handler)
+	AuthinfoUserOny(user []byte, oldh *Handler) (bool,*Handler)
 	
 	// This Method returns true, if the combination of username and password is accepted.
-	AuthinfoUserPass(user, password string, oldh *Handler) (bool,*Handler)
+	AuthinfoUserPass(user, password []byte, oldh *Handler) (bool,*Handler)
 }
 
 
@@ -152,10 +152,7 @@ func (d *defCaps) ListGroups(wm *WildMat, ila IListActive) bool { return false }
 
 // LoginCaps
 func (d *defCaps) AuthinfoDone(h *Handler) bool { return true }
-
 func (d *defCaps) AuthinfoCheckPrivilege(p LoginPriv,h *Handler) bool { return true }
-
-func (d *defCaps) AuthinfoUserOny(user string, oldh *Handler) (bool,*Handler) { return false,nil }
-	
-func (d *defCaps) AuthinfoUserPass(user, password string, oldh *Handler) (bool,*Handler) { return false,nil }
+func (d *defCaps) AuthinfoUserOny(user []byte, oldh *Handler) (bool,*Handler) { return false,nil }
+func (d *defCaps) AuthinfoUserPass(user, password []byte, oldh *Handler) (bool,*Handler) { return false,nil }
 

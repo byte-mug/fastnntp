@@ -72,6 +72,7 @@ var pool_nntpHandler = sync.Pool{ New: func() interface{} {
 	outBuffer  : make([]byte,0,1<<13),
 	groupBuffer: make([]byte,0,1<<13),
 	idBuffer   : make([]byte,0,1<<7),
+	userNameBuf: make([]byte,0,1<<7),
 	}
 }}
 
@@ -101,6 +102,8 @@ type nntpHandler struct {
 	outBuffer   []byte
 	groupBuffer []byte
 	idBuffer    []byte
+	userNameBuf []byte
+	userName    []byte
 }
 
 func (h *nntpHandler) release() {
@@ -110,6 +113,7 @@ func (h *nntpHandler) release() {
 	h.h = nil
 	if h.group!=nil { pool_Group_put(h.group) }
 	h.group = nil
+	h.userName = nil
 	pool_nntpHandler.Put(h)
 }
 
@@ -154,6 +158,9 @@ var nntpCommands = map[string]handleFunc{
 	
 	// RFC-3977    7.6.   The LIST Commands
 	"list"     :handleList,
+	
+	// NNTP AUTHINFO
+	"authinfo" :handleAuthInfo,
 }
 
 func (h *nntpHandler) servceConn() error {
@@ -178,6 +185,10 @@ func (h *nntpHandler) servceConn() error {
 		if h.end { return nil }
 	}
 	panic("unreachable")
+}
+func (h *nntpHandler) writeRaw(out []byte) error {
+	_,e := h.w.Write(out)
+	return e
 }
 func (h *nntpHandler) writeError(ne *NNTPError) error {
 	out := h.outBuffer
@@ -706,7 +717,9 @@ func handleArticle(h *nntpHandler,args [][]byte) error {
 */
 
 func handlePost(h *nntpHandler,args [][]byte) error {
-	// TODO: Check Permissions
+	// Check Permissions
+	if !h.h.AuthinfoCheckPrivilege(LoginPriv_Post,h.h) { return h.issueCommandNotPermitted() }
+	
 	if !h.h.CheckPost() { return h.writeError(ErrPostingNotPermitted) }
 	if e := h.writeMessage(340, "Send article to be posted"); e!=nil { return e }
 	dotr := h.r.DotReader()
@@ -742,7 +755,9 @@ func handlePost(h *nntpHandler,args [][]byte) error {
 */
 
 func handleIHave(h *nntpHandler,args [][]byte) error {
-	// TODO: Check Permissions
+	// Check Permissions
+	if !h.h.AuthinfoCheckPrivilege(LoginPriv_Post,h.h) { return h.issueCommandNotPermitted() }
+	
 	if len(args)==0 { return h.writeError(ErrSyntax) }
 	id := args[0]
 	wanted,possible := h.h.CheckPostId(id)
@@ -777,7 +792,9 @@ func handleIHave(h *nntpHandler,args [][]byte) error {
    message-id provided by the client as the parameter to CHECK.
 */
 func handleCheck(h *nntpHandler,args [][]byte) error {
-	// TODO: Check Permissions
+	// Check Permissions
+	if !h.h.AuthinfoCheckPrivilege(LoginPriv_Post,h.h) { return h.issueCommandNotPermitted() }
+	
 	if len(args)==0 { return h.writeError(ErrSyntax) }
 	id := args[0]
 	code := int64(238)
@@ -812,11 +829,15 @@ func handleCheck(h *nntpHandler,args [][]byte) error {
    message-id provided by the client as the parameter to TAKETHIS.
 */
 func handleTakethis(h *nntpHandler,args [][]byte) error {
-	// TODO: Check Permissions
 	if len(args)==0 { h.end = true; return h.writeError(ErrSyntax) }
 	id := args[0]
 	
 	dotr := h.r.DotReader()
+	if h.h.AuthinfoCheckPrivilege(LoginPriv_Post,h.h) {
+		io.Copy(ioutil.Discard,dotr) // Eat!
+		return h.issueCommandNotPermitted() // SHOUT!
+	}
+	
 	r,f := h.h.PerformPost(id, dotr)
 	io.Copy(ioutil.Discard,dotr) // Eat up excess data.
 	
