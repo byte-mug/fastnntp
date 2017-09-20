@@ -1209,10 +1209,10 @@ var handleList_map = map[string]handleFunc {
 	"": handleListActive,
 	"active": handleListActive,
 	"newsgroups": handleListNewsgroups,
-	"overiew.fmt": handleListOverviewFmt,
+	"overview.fmt": handleListOverviewFmt,
 	"headers": handleListHeaders,
 }
-const handleList_resp = "215 Information follows (multi-line)"
+const handleList_resp = "215 Information follows (multi-line)\r\n"
 func handleList(h *nntpHandler,args [][]byte) error {
 	kw := []byte(nil)
 	if len(args)>0 {
