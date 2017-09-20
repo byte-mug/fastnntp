@@ -78,30 +78,55 @@ type ArticleCaps interface {
 	GetArticle(a *Article,head, body bool) func(w *DotWriter)
 	WriteOverview(ar *ArticleRange) func(w IOverview)
 }
-type PostingCabs interface{
+type PostingCaps interface{
 	CheckPostId(id []byte) (wanted bool, possible bool)
 	CheckPost() (possible bool)
 	PerformPost(id []byte, r *DotReader) (rejected bool,failed bool)
 }
 
-type GroupListingCabs interface{
+type GroupListingCaps interface{
 	// Performs a List-Active action.
 	// the argument 'wm' may be nil.
 	ListGroups(wm *WildMat, ila IListActive) bool
 }
 
+// Privilege for a user.
+type LoginPriv uint
+const(
+	LoginPriv_Post LoginPriv = iota
+)
+
+// NNTP Authentication.
+// Documented outside RFC 3977 --> RFC 4643
+type LoginCaps interface{
+	// This Method SHOULD return true, if authentication has already occurred.
+	AuthinfoDone(h *Handler) bool
+	
+	// Checks a privilege. Returns true if it is allowed.
+	AuthinfoCheckPrivilege(p LoginPriv,h *Handler) bool
+	
+	// This Method returns true, if the combination of username is accepted without password.
+	// The method can optionally return a new Handler object in place of the old one.
+	AuthinfoUserOny(user string, oldh *Handler) (bool,*Handler)
+	
+	// This Method returns true, if the combination of username and password is accepted.
+	AuthinfoUserPass(user, password string, oldh *Handler) (bool,*Handler)
+}
+
+
 type Handler struct {
 	GroupCaps
 	ArticleCaps
-	PostingCabs
-	GroupListingCabs
+	PostingCaps
+	GroupListingCaps
+	LoginCaps
 }
 func (h *Handler) fill() {
 	if h.GroupCaps==nil { h.GroupCaps = DefaultCaps }
 	if h.ArticleCaps==nil { h.ArticleCaps = DefaultCaps }
-	if h.PostingCabs==nil { h.PostingCabs = DefaultCaps }
-	if h.GroupListingCabs==nil { h.GroupListingCabs = DefaultCaps }
-	
+	if h.PostingCaps==nil { h.PostingCaps = DefaultCaps }
+	if h.GroupListingCaps==nil { h.GroupListingCaps = DefaultCaps }
+	if h.LoginCaps==nil { h.LoginCaps = DefaultCaps }
 }
 
 var DefaultCaps = new(defCaps)
@@ -117,10 +142,20 @@ func (d *defCaps) StatArticle(a *Article) bool { return false }
 func (d *defCaps) GetArticle(a *Article,head, body bool) func(w *DotWriter) { return nil }
 func (d *defCaps) WriteOverview(ar *ArticleRange) func(w IOverview) { return nil }
 
-// PostingCabs
+// PostingCaps
 func (d *defCaps) CheckPostId(id []byte) (wanted bool, possible bool) { return }
 func (d *defCaps) CheckPost() (possible bool) { return }
 func (d *defCaps) PerformPost(id []byte, r *DotReader) (rejected bool,failed bool) { return true,true }
 
-// GroupListingCabs
+// GroupListingCaps
 func (d *defCaps) ListGroups(wm *WildMat, ila IListActive) bool { return false }
+
+// LoginCaps
+func (d *defCaps) AuthinfoDone(h *Handler) bool { return true }
+
+func (d *defCaps) AuthinfoCheckPrivilege(p LoginPriv,h *Handler) bool { return true }
+
+func (d *defCaps) AuthinfoUserOny(user string, oldh *Handler) (bool,*Handler) { return false,nil }
+	
+func (d *defCaps) AuthinfoUserPass(user, password string, oldh *Handler) (bool,*Handler) { return false,nil }
+
