@@ -25,7 +25,7 @@ SOFTWARE.
 // Utilities for Article Posting processing.
 package posting
 
-import "github.com/maxymania/fastnntp"
+import "github.com/byte-mug/fastnntp"
 import "bytes"
 import "io"
 
