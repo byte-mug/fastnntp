@@ -565,7 +565,7 @@ func handleArticleInternal(h *nntpHandler,args [][]byte,code int64,head, body bo
 		article.HasId  = hasid
 	}else{
 		article.HasNum = false
-		article.HasId  = false
+		article.HasId  = true
 		article.Number = 0
 		article.MessageId = args[0]
 	}
