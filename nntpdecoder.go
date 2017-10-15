@@ -487,7 +487,7 @@ func handleStat(h *nntpHandler,args [][]byte) error {
 		article.HasId  = hasid
 	}else{
 		article.HasNum = false
-		article.HasId  = false
+		article.HasId  = true
 		article.Number = 0
 		article.MessageId = args[0]
 	}
