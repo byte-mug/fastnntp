@@ -245,7 +245,7 @@ func handleAuthInfo(h *nntpHandler,args [][]byte) error {
 		h.userName = append(h.userNameBuf,args[1]...)
 		return h.writeRaw(append(h.outBuffer,handleAuthInfo_381...))
 	case 2:
-		if len(h.userName)==1 { return h.writeRaw(append(h.outBuffer,handleAuthInfo_482...)) }
+		if len(h.userName)==0 { return h.writeRaw(append(h.outBuffer,handleAuthInfo_482...)) }
 		if ok,nh := h.h.AuthinfoUserPass(h.userName,args[1],h.h); ok {
 			if nh!=nil { h.h = nh }
 			return h.writeRaw(append(h.outBuffer,handleAuthInfo_281...))
