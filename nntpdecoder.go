@@ -1,7 +1,7 @@
 /*
 MIT License
 
-Copyright (c) 2017 Simon Schmidt
+Copyright (c) 2017,2020 Simon Schmidt
 Copyright (c) 2012-2014  Dustin Sallings <dustin@spy.net>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -72,6 +72,7 @@ var pool_nntpHandler = sync.Pool{ New: func() interface{} {
 	outBuffer  : make([]byte,0,1<<13),
 	groupBuffer: make([]byte,0,1<<13),
 	idBuffer   : make([]byte,0,1<<7),
+	tmpIdBuffer: make([]byte,0,1<<7),
 	userNameBuf: make([]byte,0,1<<7),
 	}
 }}
@@ -102,6 +103,7 @@ type nntpHandler struct {
 	outBuffer   []byte
 	groupBuffer []byte
 	idBuffer    []byte
+	tmpIdBuffer []byte // Secondary ID buffer, to prevent destructive overwrites of idBuffer.
 	userNameBuf []byte
 	userName    []byte
 }
@@ -328,12 +330,46 @@ func handleGroup(h *nntpHandler,args [][]byte) error {
 		h.groupCursor = -1
 		h.groupCurId = nil
 		if ogrp!=nil { pool_Group_put(ogrp) }
+		selectFirstArticle(h)
 		return h.writeGroupF(h.w,211,ngrp)
 	}else{
 		pool_Group_put(ngrp)
 		return h.writeError(ErrNoSuchGroup)
 	}
 	panic("unreachable")
+}
+/*
+Helper function.
+
+RFC-3977, Page 38, 6.1.1.  GROUP; 6.1.1.2.  Description
+
+   When a valid group is selected by means of this command, the
+   currently selected newsgroup MUST be set to that group, and the
+   current article number MUST be set to the first article in the group
+   (this applies even if the group is already the currently selected
+   newsgroup).  If an empty newsgroup is selected, the current article
+   number is made invalid.  If an invalid group is specified, the
+   currently selected newsgroup and current article number MUST NOT be
+   changed.
+*/
+func selectFirstArticle(h *nntpHandler) {
+	article := pool_Article.Get().(*Article)
+	defer pool_Article_put(article)
+	article.Group = h.group.Group
+	article.Number = h.group.Low
+	article.HasNum = true
+	article.HasId = false
+	article.MessageId = h.idBuffer
+	
+	if h.h.StatArticle(article) {
+		h.groupCursor = article.Number
+		h.groupCurId = article.MessageId
+		return
+	}
+	if cur,id,ok := h.h.CursorMoveGroup(h.group,-1,false,h.idBuffer); ok {
+		h.groupCursor = cur
+		h.groupCurId = id
+	}
 }
 
 /*
@@ -481,10 +517,14 @@ func handleStat(h *nntpHandler,args [][]byte) error {
 		num   := ParseUint(args[0])
 		hasid := num == h.groupCursor
 		article.HasNum = true
-		article.MessageId = h.groupCurId
 		article.Group  = h.group.Group
 		article.Number = num
 		article.HasId  = hasid
+		if hasid {
+			article.MessageId = h.groupCurId
+		} else {
+			article.MessageId = h.idBuffer
+		}
 	}else{
 		article.HasNum = false
 		article.HasId  = true
@@ -492,11 +532,14 @@ func handleStat(h *nntpHandler,args [][]byte) error {
 		article.MessageId = args[0]
 	}
 	
-	if use_num && !article.HasId {
-		if !h.h.StatArticle(article) {
+	setid := !article.HasId
+	if h.h.StatArticle(article) {
+		if setid { h.groupCurId = article.MessageId }
+		if use_num { h.groupCursor = article.Number }
+	} else {
+		if use_num {
 			return h.writeError(ErrInvalidArticleNumber)
 		}
-	}else if !h.h.StatArticle(article) {
 		return h.writeError(ErrInvalidMessageID)
 	}
 	
@@ -559,10 +602,14 @@ func handleArticleInternal(h *nntpHandler,args [][]byte,code int64,head, body bo
 		num   := ParseUint(args[0])
 		hasid := num == h.groupCursor
 		article.HasNum = true
-		article.MessageId = h.groupCurId
 		article.Group  = h.group.Group
 		article.Number = num
 		article.HasId  = hasid
+		if hasid {
+			article.MessageId = h.groupCurId
+		} else {
+			article.MessageId = h.tmpIdBuffer
+		}
 	}else{
 		article.HasNum = false
 		article.HasId  = true
@@ -570,6 +617,7 @@ func handleArticleInternal(h *nntpHandler,args [][]byte,code int64,head, body bo
 		article.MessageId = args[0]
 	}
 	
+	setid := !article.HasId
 	w := h.h.GetArticle(article,head,body)
 	if w==nil {
 		if use_nothing {
@@ -580,6 +628,11 @@ func handleArticleInternal(h *nntpHandler,args [][]byte,code int64,head, body bo
 			return h.writeError(ErrInvalidMessageID)
 		}
 		panic("unreachable")
+	} else {
+		if use_num {
+			if setid { h.groupCurId = append(h.idBuffer,article.MessageId...) }
+			h.groupCursor = article.Number
+		}
 	}
 	
 	out = AppendUint(out,article.Number)
