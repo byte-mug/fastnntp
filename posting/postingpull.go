@@ -105,8 +105,9 @@ func ConsumePostedArticle(r *fastnntp.DotReader) (head []byte, body []byte) {
 	defer hbw.Release()
 	dw := fastnntp.AcquireDotWriter()
 	dw.Reset(hbw)
-	defer func(){ dw.Close(); dw.Release() }()
+	defer dw.Release()
 	io.Copy(dw,r)
+	dw.Close()
 	
 	head = trimCRLF(headw.Bytes())
 	body = trimDOT(trimCRLF(bodyw.Bytes()))
@@ -146,8 +147,12 @@ var headerCase = map[string][]byte {
 
 
 func ParseAndProcessHeader(id []byte, s Stamper, head []byte) (hi *HeadInfo) {
+	return ParseAndProcessHeaderWithBuffer(id,s,head,new(bytes.Buffer))
+}
+
+func ParseAndProcessHeaderWithBuffer(id []byte, s Stamper, head []byte, dest_buffer *bytes.Buffer) (hi *HeadInfo) {
 	hi = new(HeadInfo)
-	headw := new(bytes.Buffer)
+	headw := dest_buffer
 	last := make([]byte,0,256)
 	name := make([]byte,0,25)
 	buffer := make([]byte,0,100)
