@@ -116,6 +116,8 @@ func (h *nntpHandler) release() {
 	if h.group!=nil { pool_Group_put(h.group) }
 	h.group = nil
 	h.userName = nil
+	h.groupCursor = 0
+	h.groupCurId = nil
 	pool_nntpHandler.Put(h)
 }
 
