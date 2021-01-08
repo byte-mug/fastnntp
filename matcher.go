@@ -32,6 +32,7 @@ package fastnntp
 -----------------------
 (x,\r) -> x
 (0,\n) -> 1
+(1,\n) -> 1
 (1,. ) -> 2
 (2,\n) -> 3
 (_,_ ) -> 0
@@ -43,7 +44,8 @@ func nlDotNl_transition(s uint16,b byte) uint16 {
 	// (x,\r) -> x
 	case 0x010d,0x020d: return s
 	// (0,\n) -> 1
-	case 0x000a: return 0x0100
+	// (1,\n) -> 1
+	case 0x000a,0x010a: return 0x0100
 	// (1,. ) -> 2
 	case 0x012e: return 0x0200
 	// (2,\n) -> 3
